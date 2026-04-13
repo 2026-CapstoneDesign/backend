@@ -7,7 +7,9 @@ const passport = require("passport");
 const auth = require("./middleware/auth");
 const User = require("./models/User");
 
-
+const Survey = require("./models/Survey"); 
+const multer = require("multer");
+const path = require("path");
 require("./config/passport");
 
 const app = express();
@@ -15,7 +17,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
+app.use("/uploads", express.static("uploads")); 
 
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+});
+const upload = multer({ storage: storage });
 
 // DB 연결
 mongoose.connect(process.env.MONGO_URI)
@@ -74,6 +82,45 @@ app.get("/auth/kakao/callback",
     res.json({ token });
   }
 );
+
+//1. 업종별 질문 가져오기 API
+app.get("/survey/questions", async (req, res) => {
+  try {
+    const { category } = req.query;
+    const questions = await mongoose.connection.db.collection("questions").find({ category }).toArray();
+    res.json(questions);
+  } catch (err) {
+    res.status(500).json({ message: "질문 조회 실패" });
+  }
+});
+
+// 2. 설문 답변 및 파일 제출 API (로그인한 사람만 가능!)
+app.post("/survey/submit", auth, upload.fields([
+  { name: 'step1File' }, { name: 'step2File' }, { name: 'step3File' }
+]), async (req, res) => {
+  try {
+    const surveyData = new Survey({
+      userId: req.user.id, // 팀원의 auth 미들웨어가 유저 ID를 여기 넣어줍니다!
+      category: req.body.category,
+      answers: {
+        step1: JSON.parse(req.body.step1),
+        step2: JSON.parse(req.body.step2),
+        step3: JSON.parse(req.body.step3),
+      },
+      files: {
+        step1: req.files['step1File'] ? req.files['step1File'][0].path : null,
+        step2: req.files['step2File'] ? req.files['step2File'][0].path : null,
+        step3: req.files['step3File'] ? req.files['step3File'][0].path : null,
+      }
+    });
+
+    await surveyData.save();
+    res.json({ message: "설문 저장 성공!", surveyId: surveyData._id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "저장 실패" });
+  }
+});
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
