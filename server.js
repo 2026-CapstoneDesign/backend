@@ -6,15 +6,12 @@ const mongoose = require("mongoose");
 const passport = require("passport");
 const auth = require("./middleware/auth");
 const User = require("./models/User");
-<<<<<<< HEAD
 
 const Survey = require("./models/Survey"); 
 const multer = require("multer");
 const path = require("path");
-=======
 const userRoutes = require("./routes/userRoutes");
 
->>>>>>> cd574fc33711258ed60220f658483fe19ca01def
 require("./config/passport");
 
 const app = express();
@@ -22,11 +19,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
-<<<<<<< HEAD
 app.use("/uploads", express.static("uploads")); 
-=======
 app.use("/users", userRoutes);
->>>>>>> cd574fc33711258ed60220f658483fe19ca01def
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
@@ -92,7 +86,6 @@ app.get("/auth/kakao/callback",
   }
 );
 
-<<<<<<< HEAD
 //1. 업종별 질문 가져오기 API
 app.get("/survey/questions", async (req, res) => {
   try {
@@ -131,8 +124,6 @@ app.post("/survey/submit", auth, upload.fields([
     res.status(500).json({ message: "저장 실패" });
   }
 });
-=======
->>>>>>> cd574fc33711258ed60220f658483fe19ca01def
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
