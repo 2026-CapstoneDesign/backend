@@ -94,13 +94,13 @@ app.get("/survey/questions", async (req, res) => {
   }
 });
 
-// 2. 설문 답변 및 파일 제출 API (로그인한 사람만 가능!)
+// 2. 설문 답변 및 파일 제출 API
 app.post("/survey/submit", auth, upload.fields([
   { name: 'step1File' }, { name: 'step2File' }, { name: 'step3File' }
 ]), async (req, res) => {
   try {
     const surveyData = new Survey({
-      userId: req.user.id, // 팀원의 auth 미들웨어가 유저 ID를 여기 넣어줍니다!
+      userId: req.user.id, 
       category: req.body.category,
       answers: {
         step1: JSON.parse(req.body.step1),
