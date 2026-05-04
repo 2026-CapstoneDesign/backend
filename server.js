@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 const passport = require("passport");
 const auth = require("./middleware/auth");
 const User = require("./models/User");
-
+const userRoutes = require("./routes/userRoutes");
 
 require("./config/passport");
 
@@ -15,6 +15,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
+app.use("/users", userRoutes);
 
 
 // DB 연결
@@ -74,6 +75,7 @@ app.get("/auth/kakao/callback",
     res.json({ token });
   }
 );
+
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
