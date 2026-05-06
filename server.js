@@ -11,6 +11,7 @@ const Survey = require("./models/Survey");
 const multer = require("multer");
 const path = require("path");
 const userRoutes = require("./routes/userRoutes");
+const { router: alertRoutes, handleQuizResult } = require("./routes/alertRoutes");
 
 require("./config/passport");
 
@@ -86,7 +87,7 @@ app.get("/auth/kakao/callback",
   }
 );
 
-//1. 업종별 질문 가져오기 API
+// 업종별 질문 가져오기 API
 app.get("/survey/questions", async (req, res) => {
   try {
     const { category } = req.query;
@@ -97,7 +98,7 @@ app.get("/survey/questions", async (req, res) => {
   }
 });
 
-// 2. 설문 답변 및 파일 제출 API
+// 설문 답변 및 파일 제출 API
 app.post("/survey/submit", auth, upload.fields([
   { name: 'step1File' }, { name: 'step2File' }, { name: 'step3File' }
 ]), async (req, res) => {
@@ -124,6 +125,10 @@ app.post("/survey/submit", auth, upload.fields([
     res.status(500).json({ message: "저장 실패" });
   }
 });
+
+// 알림 API
+app.use("/alert", alertRoutes);
+
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
