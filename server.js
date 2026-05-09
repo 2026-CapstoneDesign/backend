@@ -11,6 +11,7 @@ const Survey = require("./models/Survey");
 const multer = require("multer");
 const path = require("path");
 const userRoutes = require("./routes/userRoutes");
+const summaryRoutes = require("./routes/summaryRoutes");
 const { router: alertRoutes, handleQuizResult } = require("./routes/alertRoutes");
 
 require("./config/passport");
@@ -129,6 +130,8 @@ app.post("/survey/submit", auth, upload.fields([
 // 알림 API
 app.use("/alert", alertRoutes);
 
+// 매뉴얼 요약 API
+app.use("/summary", summaryRoutes);
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
