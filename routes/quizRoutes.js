@@ -1,10 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const axios = require("axios");
+const auth = require("../middleware/auth")
 
 const auth = require("../middleware/auth");
 const Summary = require("../models/Summary");
 const Quiz = require("../models/Quiz");
+app.post("/quiz/submit", auth, async (req, res) => {
 
 router.post("/generate/:summaryId", auth, async (req, res) => {
     try {
@@ -12,6 +14,7 @@ router.post("/generate/:summaryId", auth, async (req, res) => {
             _id: req.params.summaryId,
             userId: req.user.id
         });
+  const { quizId, score, wrongAnswers } = req.body;
 
         if (!summary) {
             return res.status(404).json({
@@ -19,8 +22,11 @@ router.post("/generate/:summaryId", auth, async (req, res) => {
                 message: "요약 내역을 찾을 수 없습니다."
             });
         }
+  const userId = req.user.id;
 
         const AI_SERVER_URL = process.env.AI_SERVER_URL || "http://localhost:8000";
+  // 🔥 여기 핵심 연결
+  await handleQuizResult(userId, quizId, score, wrongAnswers);
 
         const aiResponse = await axios.post(`${AI_SERVER_URL}/quiz/generate`, {
             summary: summary.summaryContent,
@@ -128,3 +134,5 @@ router.delete("/:id", auth, async (req, res) => {
 });
 
 module.exports = router;
+  res.json({ message: "퀴즈 제출 완료 + 알림 생성" });
+});
