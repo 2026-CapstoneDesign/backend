@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const passport = require("passport");
 const auth = require("./middleware/auth");
 const User = require("./models/User");
+const quizRoutes = require("./routes/quizRoutes");
 
 
 require("./config/passport");
@@ -74,6 +75,10 @@ app.get("/auth/kakao/callback",
     res.json({ token });
   }
 );
+
+// 학습 퀴즈 API
+app.use("/quiz", quizRoutes);
+
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
