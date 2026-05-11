@@ -6,11 +6,13 @@ const mongoose = require("mongoose");
 const passport = require("passport");
 const auth = require("./middleware/auth");
 const User = require("./models/User");
+const quizRoutes = require("./routes/quizRoutes");
 
-const Survey = require("./models/Survey"); 
+const Survey = require("./models/Survey");
 const multer = require("multer");
 const path = require("path");
 const userRoutes = require("./routes/userRoutes");
+const summaryRoutes = require("./routes/summaryRoutes");
 const { router: alertRoutes, handleQuizResult } = require("./routes/alertRoutes");
 
 require("./config/passport");
@@ -20,7 +22,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
-app.use("/uploads", express.static("uploads")); 
+app.use("/uploads", express.static("uploads"));
 app.use("/users", userRoutes);
 
 const storage = multer.diskStorage({
@@ -104,7 +106,7 @@ app.post("/survey/submit", auth, upload.fields([
 ]), async (req, res) => {
   try {
     const surveyData = new Survey({
-      userId: req.user.id, 
+      userId: req.user.id,
       category: req.body.category,
       answers: {
         step1: JSON.parse(req.body.step1),
@@ -128,6 +130,12 @@ app.post("/survey/submit", auth, upload.fields([
 
 // 알림 API
 app.use("/alert", alertRoutes);
+
+// 매뉴얼 요약 API
+app.use("/summary", summaryRoutes);
+
+// 학습 퀴즈 API
+app.use("/quiz", quizRoutes);
 
 
 app.listen(3000, () => {
