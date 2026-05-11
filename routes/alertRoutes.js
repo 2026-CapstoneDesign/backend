@@ -15,10 +15,10 @@ router.post("/", auth, async (req, res) => {
 
 // 알림 목록 조회
 router.get("/", async (req, res) => {
-  const alert = await Alert.find({ userId: req.params.userId })
+  const alerts = await Alert.find({ userId: req.user.id })
     .sort({ createdAt: -1 });
 
-  res.json(alert);
+  res.json(alerts);
 });
 
 // 읽음 처리
