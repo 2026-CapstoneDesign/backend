@@ -10,7 +10,8 @@ const alertSchema = new mongoose.Schema({
   triggerTime: String, // 시간대 (ex: "야간")
   
   isRead: { type: Boolean, default: false },
-  relatedId: String // quizId, manualId 등
+  relatedId: String, // quizId, manualId 등
+  createdAt: Date
 }, { timestamps: true });
 
 module.exports = mongoose.model("Alert", alertSchema);
