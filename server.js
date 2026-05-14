@@ -7,6 +7,7 @@ const passport = require("passport");
 const auth = require("./middleware/auth");
 const User = require("./models/User");
 const quizRoutes = require("./routes/quizRoutes");
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 const Survey = require("./models/Survey");
 const multer = require("multer");
@@ -127,6 +128,9 @@ app.post("/survey/submit", auth, upload.fields([
     res.status(500).json({ message: "저장 실패" });
   }
 });
+
+// 사장님 대시보드 API
+app.use('/dashboard', dashboardRoutes);
 
 // 알림 API
 app.use("/alert", alertRoutes);
