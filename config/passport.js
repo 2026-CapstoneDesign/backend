@@ -18,7 +18,8 @@ async (accessToken, refreshToken, profile, done) => {
       email: profile.emails[0].value,
       name: profile.displayName,
       provider: "google",
-      providerId: profile.id
+      providerId: profile.id,
+      role: "employee"
     });
   }
 
@@ -44,7 +45,8 @@ async (accessToken, refreshToken, profile, done) => {
       email: profile._json.kakao_account?.email,
       name: profile.username,
       provider: "kakao",
-      providerId: profile.id
+      providerId: profile.id,
+      role: "employee"
     });
   }
 
