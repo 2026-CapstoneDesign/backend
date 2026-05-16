@@ -8,6 +8,7 @@ const auth = require("./middleware/auth");
 const User = require("./models/User");
 const quizRoutes = require("./routes/quizRoutes");
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const Survey = require("./models/Survey");
 const multer = require("multer");
@@ -140,6 +141,9 @@ app.use("/summary", summaryRoutes);
 
 // 학습 퀴즈 API
 app.use("/quiz", quizRoutes);
+
+// 챗봇 API
+app.use('/chat', chatRoutes);
 
 
 app.listen(3000, () => {

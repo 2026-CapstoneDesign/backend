@@ -61,8 +61,6 @@ router.post("/process", auth, upload.single("manualFile"), async (req, res) => {
         }
 
         // AI 서버 기본 주소
-        // 지금은 로컬 AI 서버 테스트용
-        // 나중에 AI 서버 배포 후 .env만 http://3.26.56.145:8000 으로 바꾸면 됨
         const AI_SERVER_URL = process.env.AI_SERVER_URL || "http://localhost:8000";
 
         const formData = new FormData();
@@ -82,20 +80,29 @@ router.post("/process", auth, upload.single("manualFile"), async (req, res) => {
             timeout: 40000,
         });
 
-        let analysisResult = aiResponse.data;
+        // 🌟 1. AI 서버의 최종 응답 데이터 파싱
+        const aiData = aiResponse.data;
+        
+        let extractedSummary = "";
+        let extractedRecommendations = [];
 
-        if (typeof analysisResult === "object") {
-            analysisResult =
-                analysisResult.summary ||
-                analysisResult.error ||
-                JSON.stringify(analysisResult);
+        // 🌟 2. AI 서버 응답 구조 분해 및 가공 ([object Object] 방어 코드 포함)
+        if (typeof aiData === "object" && aiData !== null) {
+            // 요약 텍스트 정제 추출
+            extractedSummary = aiData.summary || aiData.error || JSON.stringify(aiData);
+            // AI가 문장으로 완전히 새로 창조해 준 추천 질문 배열 추출
+            extractedRecommendations = aiData.recommendations || [];
+        } else {
+            extractedSummary = String(aiData);
         }
 
+        // 🌟 3. 새 몽고디비 모델 객체 생성 시 추천 질문 필드까지 함께 세팅
         const newSummary = new Summary({
             userId: req.user.id,
             category: req.body.category || "미지정",
             originalText: finalContent,
-            summaryContent: String(analysisResult),
+            summaryContent: extractedSummary,
+            recommendedQuestions: extractedRecommendations // 👈 몽고DB 스키마의 배열 필드에 저장!
         });
 
         await newSummary.save();
