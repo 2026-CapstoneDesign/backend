@@ -5,6 +5,8 @@ const axios = require("axios");
 const auth = require("../middleware/auth");
 const Summary = require("../models/Summary");
 const Quiz = require("../models/Quiz");
+const QuizResult = require("../models/QuizResult");
+const LearningProgress = require("../models/LearningProgress");
 
 // alertRoutes.js에서 handleQuizResult를 export하고 있다면 사용
 const { handleQuizResult } = require("./alertRoutes");
@@ -72,7 +74,7 @@ router.post("/generate/:summaryId", auth, async (req, res) => {
 router.post("/submit", auth, async (req, res) => {
     try {
         const userId = req.user.id;
-        const { quizId, score, wrongAnswers } = req.body;
+        const { quizId, score, wrongAnswers = [] } = req.body;
 
         if (!quizId || score === undefined) {
             return res.status(400).json({
@@ -81,13 +83,52 @@ router.post("/submit", auth, async (req, res) => {
             });
         }
 
+        const quiz = await Quiz.findOne({
+            _id: quizId,
+            userId,
+        });
+
+        if (!quiz) {
+            return res.status(404).json({
+                success: false,
+                message: "퀴즈를 찾을 수 없습니다.",
+            });
+        }
+
+        const quizResult = await QuizResult.create({
+            userId,
+            quizId,
+            concept: "전체",
+            correct: score >= 60,
+            score,
+        });
+
+        await LearningProgress.findOneAndUpdate(
+            {
+                userId,
+                targetType: "quiz",
+                targetId: quizId,
+            },
+            {
+                progressRate: 100,
+                isCompleted: true,
+                completedAt: new Date(),
+            },
+            {
+                new: true,
+                upsert: true,
+                setDefaultsOnInsert: true,
+            }
+        );
+
         if (typeof handleQuizResult === "function") {
             await handleQuizResult(userId, quizId, score, wrongAnswers);
         }
 
         res.status(200).json({
             success: true,
-            message: "퀴즈 제출 완료 + 알림 생성",
+            message: "퀴즈 제출 완료 + 결과 저장 + 진행률 저장 + 알림 생성",
+            data: quizResult,
         });
     } catch (err) {
         console.error("퀴즈 제출 에러:", err.message);
