@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const passport = require("passport");
 const auth = require("./middleware/auth");
 const User = require("./models/User");
+const storeRoutes = require("./routes/storeRoutes");
 const quizRoutes = require("./routes/quizRoutes");
 
 const dashboardRoutes = require('./routes/dashboardRoutes');
@@ -93,6 +94,9 @@ app.get("/auth/kakao/callback",
     res.json({ token });
   }
 );
+
+// 스토어 API
+app.use("/store", storeRoutes);
 
 // 업종별 질문 가져오기 API
 app.get("/survey/questions", async (req, res) => {
