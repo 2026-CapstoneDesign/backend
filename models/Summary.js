@@ -21,7 +21,8 @@ const SummarySchema = new mongoose.Schema({
     createdAt: { 
         type: Date, 
         default: Date.now 
-    }
+    },
+    recommendedQuestions: { type: [String], default: [] }
 });
 
 module.exports = mongoose.model('Summary', SummarySchema);

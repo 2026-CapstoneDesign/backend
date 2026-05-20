@@ -12,6 +12,10 @@ const surveySchema = new mongoose.Schema({
   step2FilePath: { type: String, default: null },
   step3FilePath: { type: String, default: null },
 
+  // 🔥 [방법 B 캐싱용 필드 추가] 
+  // 사장님이 등록/수정 시점에 FastAPI 결과물(8개 질문)을 이곳에 배열로 담아둡니다.
+  recommendedQuestions: { type: [String], default: [] },
+
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -7,7 +7,9 @@ const passport = require("passport");
 const auth = require("./middleware/auth");
 const User = require("./models/User");
 const quizRoutes = require("./routes/quizRoutes");
-const dashboardRoutes = require("./routes/dashboardRoutes");
+
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 const questionRoutes = require("./routes/questionRoutes");
 const learningProgressRoutes = require("./routes/learningProgressRoutes");
 
@@ -148,6 +150,9 @@ app.use("/learning-progress", learningProgressRoutes);
 
 // 학습 퀴즈 API
 app.use("/quiz", quizRoutes);
+
+// 챗봇 API
+app.use('/chat', chatRoutes);
 
 
 app.listen(3000, () => {
