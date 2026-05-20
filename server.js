@@ -7,8 +7,11 @@ const passport = require("passport");
 const auth = require("./middleware/auth");
 const User = require("./models/User");
 const quizRoutes = require("./routes/quizRoutes");
+
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const questionRoutes = require("./routes/questionRoutes");
+const learningProgressRoutes = require("./routes/learningProgressRoutes");
 
 const Survey = require("./models/Survey");
 const multer = require("multer");
@@ -135,9 +138,15 @@ app.use('/dashboard', dashboardRoutes);
 
 // 알림 API
 app.use("/alert", alertRoutes);
-
+333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333323333333333322222222222222222222222222222222
 // 매뉴얼 요약 API
 app.use("/summary", summaryRoutes);
+
+// 질문 게시판 API
+app.use("/questions", questionRoutes);
+
+// 학습 진행률 API
+app.use("/learning-progress", learningProgressRoutes);
 
 // 학습 퀴즈 API
 app.use("/quiz", quizRoutes);
