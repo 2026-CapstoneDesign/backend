@@ -18,7 +18,7 @@ exports.createStore = async (req, res) => {
       description,
     });
 
-    // owner를 멤버에도 추가
+    
     await StoreMember.create({
       storeId: store._id,
       userId: userId,
@@ -67,7 +67,6 @@ exports.updateStore = async (req, res) => {
     const { storeId } = req.params;
     const { name, category, description } = req.body;
 
-    // 매장 찾기
     const store = await Store.findById(storeId);
 
     if (!store) {
@@ -76,12 +75,12 @@ exports.updateStore = async (req, res) => {
       });
     }
 
-    // 값 수정
+    
     if (name) store.name = name;
     if (category) store.category = category;
     if (description) store.description = description;
 
-    // 저장
+    
     await store.save();
 
     res.status(200).json({
@@ -97,7 +96,7 @@ exports.updateStore = async (req, res) => {
 };
 
 // =============================
-// 매장 삭제 (soft delete)
+// 매장 삭제 
 // =============================
 exports.deleteStore = async (req, res) => {
   try {
@@ -140,10 +139,9 @@ exports.createInviteCode = async (req, res) => {
       });
     }
 
-    // 카테고리명 앞 4자리 + 랜덤 4자리 조합 (예: CAFE-A1B2)
+  
     const newInviteCode = crypto.randomBytes(2).toString("hex").toUpperCase();
 
-    // 매장에 초대코드 등록 및 저장
     store.inviteCode = newInviteCode;
     await store.save();
 
@@ -173,7 +171,6 @@ exports.joinStore = async (req, res) => {
       });
     }
 
-    // 1. 활성화된 매장 중 해당 초대코드가 있는지 검증
     const store = await Store.findOne({ inviteCode, isDeleted: false });
     if (!store) {
       return res.status(404).json({
@@ -181,14 +178,13 @@ exports.joinStore = async (req, res) => {
       });
     }
 
-    // 사장님이 본인 매장에 알바생으로 들어가는 로직 차단
     if (store.ownerId.toString() === userId) {
       return res.status(400).json({
         error: "매장 관리자는 알바생 멤버로 등록할 수 없습니다.",
       });
     }
 
-    // 2. 이미 소속된 멤버인지 중복 검사
+    // 이미 소속된 멤버인지 중복 검사
     const alreadyMember = await StoreMember.findOne({ storeId: store._id, userId });
     if (alreadyMember) {
       return res.status(400).json({
@@ -196,7 +192,6 @@ exports.joinStore = async (req, res) => {
       });
     }
 
-    // 3. 직원(EMPLOYEE)으로 가입 처리
     const newMember = await StoreMember.create({
       storeId: store._id,
       userId: userId,
