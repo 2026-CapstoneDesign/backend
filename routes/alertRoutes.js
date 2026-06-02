@@ -14,17 +14,55 @@ router.post("/", auth, async (req, res) => {
 });
 
 // 알림 목록 조회
-router.get("/", async (req, res) => {
-  const alerts = await Alert.find({ userId: req.user.id })
-    .sort({ createdAt: -1 });
+router.get("/", auth, async (req, res) => {
+  try {
+    const alerts = await Alert.find({
+      userId: req.user.id
+    }).sort({ createdAt: -1 });
 
-  res.json(alerts);
+    res.json(alerts);
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "서버 오류"
+    });
+  }
 });
 
 // 읽음 처리
-router.patch("/:id/read", async (req, res) => {
-  await Alert.findByIdAndUpdate(req.params.id, { isRead: true });
-  res.json({ message: "updated" });
+router.patch("/:id/read", auth, async (req, res) => {
+  try {
+
+    const alert = await Alert.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        userId: req.user.id
+      },
+      {
+        isRead: true
+      },
+      {
+        new: true
+      }
+    );
+
+    if (!alert) {
+      return res.status(404).json({
+        message: "알림을 찾을 수 없습니다."
+      });
+    }
+
+    res.json(alert);
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "서버 오류"
+    });
+  }
 });
 
 // 전체 읽음
@@ -37,11 +75,54 @@ router.patch("/read-all", auth, async (req, res) => {
 });
 
 // 삭제
-router.delete("/:id", async (req, res) => {
-  await Alert.findByIdAndDelete(req.params.id);
-  res.json({ message: "deleted" });
+router.delete("/:id", auth, async (req, res) => {
+  try {
+
+    const alert = await Alert.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user.id
+    });
+
+    if (!alert) {
+      return res.status(404).json({
+        message: "알림을 찾을 수 없습니다."
+      });
+    }
+
+    res.json({
+      message: "삭제 완료"
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "서버 오류"
+    });
+  }
 });
 
+// 뱃지 카운트 (읽지 않은 알림 개수)
+router.get("/unread-count", auth, async (req, res) => {
+  try {
+
+    const count = await Alert.countDocuments({
+      userId: req.user.id,
+      isRead: false
+    });
+
+    res.json({
+      unreadCount: count
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "서버 오류"
+    });
+  }
+});
 
 // ---------- 퀴즈 제출 시 자동 알림 ----------
 // 예: 퀴즈 제출 후
