@@ -29,7 +29,7 @@ app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
 app.use("/uploads", express.static("uploads"));
-app.use("/users", userRoutes);
+app.use("/", userRoutes);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
@@ -45,12 +45,6 @@ mongoose.connect(process.env.MONGO_URI)
 // 기본 테스트
 app.get("/", (req, res) => {
   res.send("Server running");
-});
-
-// 토큰 검증
-app.get("/me", auth, async (req, res) => {
-  const user = await User.findById(req.user.id);
-  res.json(user);
 });
 
 // Google 로그인 시작
