@@ -8,7 +8,10 @@ const multer = require("multer");
 const auth = require("../middleware/auth");
 const Summary = require("../models/Summary");
 
-// multer 설정: 용량 제한 5MB 및 메모리 스토리지
+const Store = require("../models/store");
+const StoreMember = require("../models/storeMember");
+
+//용량 제한 5MB 및 메모리 스토리지
 const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 },
     storage: multer.memoryStorage(),
@@ -60,7 +63,6 @@ router.post("/process", auth, upload.single("manualFile"), async (req, res) => {
             });
         }
 
-        // AI 서버 기본 주소
         const AI_SERVER_URL = process.env.AI_SERVER_URL || "http://localhost:8000";
 
         const formData = new FormData();
@@ -80,29 +82,29 @@ router.post("/process", auth, upload.single("manualFile"), async (req, res) => {
             timeout: 40000,
         });
 
-        // 🌟 1. AI 서버의 최종 응답 데이터 파싱
+        // 1. AI 서버의 최종 응답 
         const aiData = aiResponse.data;
         
         let extractedSummary = "";
         let extractedRecommendations = [];
 
-        // 🌟 2. AI 서버 응답 구조 분해 및 가공 ([object Object] 방어 코드 포함)
+        // 2. AI 서버 응답 구조
         if (typeof aiData === "object" && aiData !== null) {
             // 요약 텍스트 정제 추출
             extractedSummary = aiData.summary || aiData.error || JSON.stringify(aiData);
-            // AI가 문장으로 완전히 새로 창조해 준 추천 질문 배열 추출
+            // AI추천 질문 배열 추출
             extractedRecommendations = aiData.recommendations || [];
         } else {
             extractedSummary = String(aiData);
         }
 
-        // 🌟 3. 새 몽고디비 모델 객체 생성 시 추천 질문 필드까지 함께 세팅
+       
         const newSummary = new Summary({
             userId: req.user.id,
             category: req.body.category || "미지정",
             originalText: finalContent,
             summaryContent: extractedSummary,
-            recommendedQuestions: extractedRecommendations // 👈 몽고DB 스키마의 배열 필드에 저장!
+            recommendedQuestions: extractedRecommendations 
         });
 
         await newSummary.save();
@@ -200,6 +202,13 @@ router.delete("/:id", auth, async (req, res) => {
             });
         }
 
+        if (!summary) {
+            return res.status(404).json({
+                success: false,
+                message: "내역 없음",
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: "삭제되었습니다.",
@@ -208,6 +217,63 @@ router.delete("/:id", auth, async (req, res) => {
         res.status(500).json({
             success: false,
             message: "삭제 중 오류 발생",
+        });
+    }
+});
+
+/**
+ * @route   GET /summary/store/:storeId/latest
+ * @desc    
+ */
+router.get("/store/:storeId/latest", auth, async (req, res) => {
+    try {
+        const { storeId } = req.params;
+        const userId = req.user.id;
+
+        // 1. 권한 검증
+        const isMember = await StoreMember.findOne({ storeId, userId });
+        if (!isMember) {
+            return res.status(403).json({
+                success: false,
+                message: "해당 매장의 매뉴얼을 조회할 권한이 없습니다.",
+            });
+        }
+
+        // 2. 매장 정보 조회를 통해 사장님 ID(ownerId) 확보
+        const store = await Store.findOne({ _id: storeId, isDeleted: false });
+        if (!store) {
+            return res.status(404).json({
+                success: false,
+                message: "매장을 찾을 수 없거나 삭제된 매장입니다.",
+            });
+        }
+
+        // 3. 사장님 ID(ownerId)가 생성한 가장 최신 요약본 조회
+        const latestSummary = await Summary.findOne({ userId: store.ownerId })
+            .sort({ createdAt: -1 });
+
+        if (!latestSummary) {
+            return res.status(404).json({
+                success: false,
+                message: "아직 매장에 등록된 매뉴얼 요약본이 없습니다.",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                summaryId: latestSummary._id, 
+                category: latestSummary.category,
+                summaryContent: latestSummary.summaryContent,
+                recommendedQuestions: latestSummary.recommendedQuestions
+            }
+        });
+    } catch (err) {
+        console.error("매뉴얼 요약 조회 에러:", err.message);
+        res.status(500).json({
+            success: false,
+            message: "매뉴얼 요약 조회 중 오류가 발생했습니다.",
+            error: err.message,
         });
     }
 });
