@@ -19,9 +19,16 @@ const storeMemberSchema = new mongoose.Schema(
       enum: ["OWNER", "EMPLOYEE"],
       default: "EMPLOYEE",
     },
+
+    progress: {
+      type: Number,
+      default: 0, 
+    },
   },
   { timestamps: true }
 );
+
+storeMemberSchema.index({ storeId: 1, userId: 1 }, { unique: true });
 
 module.exports = mongoose.model(
   "StoreMember",
