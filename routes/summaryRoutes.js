@@ -278,4 +278,41 @@ router.get("/store/:storeId/latest", auth, async (req, res) => {
     }
 });
 
+// GET /summary/store/:storeId/all
+// 매장의 모든 요약 목록 조회 (알바생용)
+router.get("/store/:storeId/all", auth, async (req, res) => {
+    try {
+        const { storeId } = req.params;
+        const userId = req.user.id;
+
+        const isMember = await StoreMember.findOne({ storeId, userId });
+        if (!isMember) {
+            return res.status(403).json({ success: false, message: "해당 매장의 매뉴얼을 조회할 권한이 없습니다." });
+        }
+
+        const store = await Store.findOne({ _id: storeId, isDeleted: false });
+        if (!store) {
+            return res.status(404).json({ success: false, message: "매장을 찾을 수 없거나 삭제된 매장입니다." });
+        }
+
+        const summaries = await Summary.find({ userId: store.ownerId }).sort({ createdAt: -1 });
+        if (!summaries || summaries.length === 0) {
+            return res.status(404).json({ success: false, message: "아직 매장에 등록된 매뉴얼 요약본이 없습니다." });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: summaries.map((s) => ({
+                summaryId: s._id,
+                category: s.category,
+                summaryContent: s.summaryContent,
+                recommendedQuestions: s.recommendedQuestions,
+                createdAt: s.createdAt,
+            })),
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "매뉴얼 전체 조회 중 오류가 발생했습니다.", error: err.message });
+    }
+});
+
 module.exports = router;
