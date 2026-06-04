@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const QuizResult = require('../models/QuizResult');
 const Alert = require('../models/Alert');
+const LearningProgress = require("../models/LearningProgress");
 
 // 직원 학습 현황 API
 exports.getEmployeeStatus = async (req, res) => {
@@ -104,5 +105,54 @@ exports.getAlertStats = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: '알림 통계 조회 실패' });
+  }
+};
+
+// 학습 진행도 API
+exports.getMyLearningStats = async (req, res) => {
+  try {
+
+    const userId = req.user.id;
+
+    const completedCount =
+      await LearningProgress.countDocuments({
+        userId,
+        isCompleted: true
+      });
+
+    const inProgressCount =
+      await LearningProgress.countDocuments({
+        userId,
+        isCompleted: false
+      });
+
+    const progresses =
+      await LearningProgress.find({
+        userId
+      });
+
+    const averageProgress =
+      progresses.length > 0
+        ? progresses.reduce(
+            (sum, item) =>
+              sum + item.progressRate,
+            0
+          ) / progresses.length
+        : 0;
+
+    res.json({
+      completedCount,
+      averageProgress:
+        Number(averageProgress.toFixed(1)),
+      inProgressCount,
+      weeklyStudyTime: 5 // 현재 모델로 계산 불가능하여 더미값 넣음
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "학습 통계 조회 실패"
+    });
   }
 };
