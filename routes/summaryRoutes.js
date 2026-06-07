@@ -9,7 +9,7 @@ const auth = require("../middleware/auth");
 const Summary = require("../models/Summary");
 
 const Store = require("../models/store");
-const StoreMember = require("../models/storeMember");
+const StoreMember = require("../models/StoreMember");
 
 //용량 제한 5MB 및 메모리 스토리지
 const upload = multer({

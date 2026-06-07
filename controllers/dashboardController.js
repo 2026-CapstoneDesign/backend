@@ -49,38 +49,46 @@ exports.getEmployeeStatus = async (req, res) => {
 
 // 취약 개념 통계 API
 exports.getWeaknessStats = async (req, res) => {
-  try {
-    const results = await QuizResult.aggregate([
-      { $match: { correct: false } },
+    try {
+        const ownerId = req.user.id || req.user._id;
 
-      {
-        $group: {
-          _id: '$concept',
-          wrongCount: { $sum: 1 }
-        }
-      },
+        const employees = await User.find({
+            ownerId,
+            role: "employee",
+        });
 
-      { $sort: { wrongCount: -1 } },
+        const employeeIds = employees.map((employee) => employee._id);
 
-      { $limit: 5 }
-    ]);
+        const results = await QuizResult.aggregate([
+            {
+                $match: {
+                    userId: { $in: employeeIds },
+                    wrongTopics: { $exists: true, $ne: [] },
+                },
+            },
+            { $unwind: "$wrongTopics" },
+            {
+                $group: {
+                    _id: "$wrongTopics",
+                    wrongCount: { $sum: 1 },
+                },
+            },
+            { $sort: { wrongCount: -1 } },
+            { $limit: 5 },
+            {
+                $project: {
+                    _id: 0,
+                    concept: "$_id",
+                    wrongCount: 1,
+                },
+            },
+        ]);
 
-    // mock 데이터
-    res.json([
-    {
-      concept: "위생 관리",
-      wrongCount: 12
-    },
-    {
-      concept: "POS 사용",
-      wrongCount: 7
+        res.json(results);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "취약 통계 조회 실패" });
     }
-    ]);
-    //res.json(results); <- mock 없애고 사용
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: '취약 통계 조회 실패' });
-  }
 };
 
 // 알림 통계 API

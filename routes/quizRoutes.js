@@ -33,7 +33,6 @@ router.post("/generate/:summaryId", auth, async (req, res) => {
         // 나중에 AI 서버 배포 후 .env만 http://3.26.56.145:8000 으로 바꾸면 됨
         const AI_SERVER_URL = process.env.AI_SERVER_URL || "http://localhost:8000";
 
-        // axios 요청 수정 위치: 여기
         const aiResponse = await axios.post(`${AI_SERVER_URL}/quiz/generate`, {
             summary: summary.summaryContent,
             quiz_count: req.body.quizCount || 5,
@@ -83,6 +82,13 @@ router.post("/submit", auth, async (req, res) => {
             });
         }
 
+        if (!Array.isArray(wrongAnswers)) {
+            return res.status(400).json({
+                success: false,
+                message: "wrongAnswers는 배열 형식이어야 합니다.",
+            });
+        }
+
         const quiz = await Quiz.findOne({
             _id: quizId,
             userId,
@@ -95,10 +101,20 @@ router.post("/submit", auth, async (req, res) => {
             });
         }
 
+        const wrongTopics = [
+            ...new Set(
+                wrongAnswers
+                    .map((item) => item.topic)
+                    .filter((topic) => topic && topic.trim() !== "")
+            ),
+        ];
+
         const quizResult = await QuizResult.create({
             userId,
             quizId,
-            concept: "전체",
+            summaryId: quiz.summaryId,
+            concept: wrongTopics.length > 0 ? wrongTopics[0] : "전체",
+            wrongTopics,
             correct: score >= 60,
             score,
         });
