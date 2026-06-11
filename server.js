@@ -65,7 +65,9 @@ app.get("/auth/google/callback",
       { expiresIn: "7d" }
     );
 
-    res.json({ token });
+    res.redirect(
+      `${process.env.FRONT_URL}/auth/callback?token=${token}`
+    );
   }
 );
 
@@ -85,7 +87,9 @@ app.get("/auth/kakao/callback",
       { expiresIn: "7d" }
     );
 
-    res.json({ token });
+    res.redirect(
+      `${process.env.FRONT_URL}/auth/callback?token=${token}`
+    );
   }
 );
 
