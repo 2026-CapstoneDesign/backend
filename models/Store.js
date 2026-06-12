@@ -35,4 +35,4 @@ const storeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Store", storeSchema);
+module.exports = mongoose.models.Store || mongoose.model("Store", storeSchema);

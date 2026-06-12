@@ -8,7 +8,6 @@ const Quiz = require("../models/Quiz");
 const QuizResult = require("../models/QuizResult");
 const LearningProgress = require("../models/LearningProgress");
 
-// alertRoutes.js에서 handleQuizResult를 export하고 있다면 사용
 const { handleQuizResult } = require("./alertRoutes");
 
 /**
@@ -19,7 +18,6 @@ router.post("/generate/:summaryId", auth, async (req, res) => {
     try {
         const summary = await Summary.findOne({
             _id: req.params.summaryId,
-            userId: req.user.id,
         });
 
         if (!summary) {
@@ -29,14 +27,27 @@ router.post("/generate/:summaryId", auth, async (req, res) => {
             });
         }
 
-        // 현재는 로컬 AI 서버 사용
-        // 나중에 AI 서버 배포 후 .env만 http://3.26.56.145:8000 으로 바꾸면 됨
         const AI_SERVER_URL = process.env.AI_SERVER_URL || "http://localhost:8000";
 
+        // summaryContent가 JSON 문자열인 경우 텍스트로 변환
+        let summaryText = summary.summaryContent;
+        try {
+            const parsed = JSON.parse(summary.summaryContent);
+            if (parsed.content && Array.isArray(parsed.content)) {
+                summaryText = parsed.content.map((c) => `${c.title}: ${c.content}`).join('\n');
+            } else if (typeof parsed === 'string') {
+                summaryText = parsed;
+            }
+        } catch {
+            summaryText = summary.summaryContent;
+        }
+
         const aiResponse = await axios.post(`${AI_SERVER_URL}/quiz/generate`, {
-            summary: summary.summaryContent,
+            summary: summaryText,
             quiz_count: req.body.quizCount || 5,
         });
+
+        console.log('AI 응답:', JSON.stringify(aiResponse.data));
 
         if (!aiResponse.data.success) {
             return res.status(500).json({

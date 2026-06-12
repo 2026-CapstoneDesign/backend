@@ -7,13 +7,11 @@ const AnswerSchema = new mongoose.Schema(
             ref: "Question",
             required: true,
         },
-
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true,
         },
-
         content: {
             type: String,
             required: true,
@@ -23,4 +21,4 @@ const AnswerSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.model("Answer", AnswerSchema);
+module.exports = mongoose.models.Answer || mongoose.model("Answer", AnswerSchema);

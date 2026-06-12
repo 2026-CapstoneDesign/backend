@@ -8,18 +8,17 @@ const auth = require("./middleware/auth");
 const User = require("./models/User");
 const storeRoutes = require("./routes/storeRoutes");
 const quizRoutes = require("./routes/quizRoutes");
-
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const questionRoutes = require("./routes/questionRoutes");
 const learningProgressRoutes = require("./routes/learningProgressRoutes");
-
 const Survey = require("./models/Survey");
 const multer = require("multer");
 const path = require("path");
 const userRoutes = require("./routes/userRoutes");
 const summaryRoutes = require("./routes/summaryRoutes");
-const { router: alertRoutes, handleQuizResult } = require("./routes/alertRoutes");
+const { router: alertRoutes } = require("./routes/alertRoutes");
+const jwt = require("jsonwebtoken");
 
 require("./config/passport");
 
@@ -53,21 +52,15 @@ app.get("/auth/google",
 );
 
 // Google 콜백
-const jwt = require("jsonwebtoken");
-
 app.get("/auth/google/callback",
   passport.authenticate("google", { session: false }),
   (req, res) => {
-
     const token = jwt.sign(
       { id: req.user._id },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-
-    res.redirect(
-      `${process.env.FRONT_URL}/auth/callback?token=${token}`
-    );
+    res.redirect(`http://localhost:5173/auth/callback?token=${token}`);
   }
 );
 
@@ -80,16 +73,12 @@ app.get("/auth/kakao",
 app.get("/auth/kakao/callback",
   passport.authenticate("kakao", { session: false }),
   (req, res) => {
-
     const token = jwt.sign(
       { id: req.user._id },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-
-    res.redirect(
-      `${process.env.FRONT_URL}/auth/callback?token=${token}`
-    );
+    res.redirect(`http://localhost:5173/auth/callback?token=${token}`);
   }
 );
 
@@ -126,7 +115,6 @@ app.post("/survey/submit", auth, upload.fields([
         step3: req.files['step3File'] ? req.files['step3File'][0].path : null,
       }
     });
-
     await surveyData.save();
     res.json({ message: "설문 저장 성공!", surveyId: surveyData._id });
   } catch (err) {
@@ -155,7 +143,6 @@ app.use("/quiz", quizRoutes);
 
 // 챗봇 API
 app.use('/chat', chatRoutes);
-
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");

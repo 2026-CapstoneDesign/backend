@@ -11,18 +11,13 @@ const Summary = require("../models/Summary");
 const Store = require("../models/store");
 const StoreMember = require("../models/StoreMember");
 
-//용량 제한 5MB 및 메모리 스토리지
 const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 },
     storage: multer.memoryStorage(),
 });
 
-/**
- * 데이터 정제 함수
- */
 const cleanText = (text) => {
     if (!text) return "";
-
     return text
         .replace(/\r\n/g, "\n")
         .replace(/[\t ]+/g, " ")
@@ -30,10 +25,6 @@ const cleanText = (text) => {
         .trim();
 };
 
-/**
- * @route   POST /summary/process
- * @desc    텍스트+PDF 분석 요청 및 결과 DB 저장
- */
 router.post("/process", auth, upload.single("manualFile"), async (req, res) => {
     try {
         let combinedText = "";
@@ -49,7 +40,6 @@ router.post("/process", auth, upload.single("manualFile"), async (req, res) => {
                     message: "PDF 파일만 업로드 가능합니다.",
                 });
             }
-
             const pdfData = await pdf(req.file.buffer);
             combinedText += pdfData.text;
         }
@@ -66,7 +56,6 @@ router.post("/process", auth, upload.single("manualFile"), async (req, res) => {
         const AI_SERVER_URL = process.env.AI_SERVER_URL || "http://localhost:8000";
 
         const formData = new FormData();
-
         formData.append("file", Buffer.from(finalContent), {
             filename: "manual.txt",
             contentType: "text/plain",
@@ -82,29 +71,26 @@ router.post("/process", auth, upload.single("manualFile"), async (req, res) => {
             timeout: 40000,
         });
 
-        // 1. AI 서버의 최종 응답 
         const aiData = aiResponse.data;
         
         let extractedSummary = "";
         let extractedRecommendations = [];
 
-        // 2. AI 서버 응답 구조
         if (typeof aiData === "object" && aiData !== null) {
-            // 요약 텍스트 정제 추출
-            extractedSummary = aiData.summary || aiData.error || JSON.stringify(aiData);
-            // AI추천 질문 배열 추출
+            // 수정: summary가 객체인 경우 JSON 문자열로 변환
+            const rawSummary = aiData.summary || aiData.error || aiData;
+            extractedSummary = typeof rawSummary === 'string' ? rawSummary : JSON.stringify(rawSummary);
             extractedRecommendations = aiData.recommendations || [];
         } else {
             extractedSummary = String(aiData);
         }
 
-       
         const newSummary = new Summary({
             userId: req.user.id,
             category: req.body.category || "미지정",
             originalText: finalContent,
             summaryContent: extractedSummary,
-            recommendedQuestions: extractedRecommendations 
+            recommendedQuestions: extractedRecommendations
         });
 
         await newSummary.save();
@@ -115,7 +101,6 @@ router.post("/process", auth, upload.single("manualFile"), async (req, res) => {
         });
     } catch (err) {
         console.error("분석 프로세스 에러:", err.message);
-
         res.status(500).json({
             success: false,
             message: "요약 처리 중 오류가 발생했습니다.",
@@ -124,16 +109,11 @@ router.post("/process", auth, upload.single("manualFile"), async (req, res) => {
     }
 });
 
-/**
- * @route   GET /summary/list
- * @desc    사용자의 요약 내역 리스트 가져오기
- */
 router.get("/list", auth, async (req, res) => {
     try {
         const summaries = await Summary.find({ userId: req.user.id }).sort({
             createdAt: -1,
         });
-
         res.status(200).json({
             success: true,
             count: summaries.length,
@@ -147,31 +127,22 @@ router.get("/list", auth, async (req, res) => {
     }
 });
 
-/**
- * @route   PUT /summary/:id
- * @desc    특정 요약 내역 수정
- */
 router.put("/:id", auth, async (req, res) => {
     try {
         const { category, summaryContent } = req.body;
-
         const summary = await Summary.findOne({
             _id: req.params.id,
             userId: req.user.id,
         });
-
         if (!summary) {
             return res.status(404).json({
                 success: false,
                 message: "내역을 찾을 수 없습니다.",
             });
         }
-
         if (category) summary.category = category;
         if (summaryContent) summary.summaryContent = summaryContent;
-
         await summary.save();
-
         res.status(200).json({
             success: true,
             data: summary,
@@ -184,31 +155,18 @@ router.put("/:id", auth, async (req, res) => {
     }
 });
 
-/**
- * @route   DELETE /summary/:id
- * @desc    특정 요약 내역 삭제
- */
 router.delete("/:id", auth, async (req, res) => {
     try {
         const summary = await Summary.findOneAndDelete({
             _id: req.params.id,
             userId: req.user.id,
         });
-
         if (!summary) {
             return res.status(404).json({
                 success: false,
                 message: "내역 없음",
             });
         }
-
-        if (!summary) {
-            return res.status(404).json({
-                success: false,
-                message: "내역 없음",
-            });
-        }
-
         res.status(200).json({
             success: true,
             message: "삭제되었습니다.",
@@ -221,16 +179,10 @@ router.delete("/:id", auth, async (req, res) => {
     }
 });
 
-/**
- * @route   GET /summary/store/:storeId/latest
- * @desc    
- */
 router.get("/store/:storeId/latest", auth, async (req, res) => {
     try {
         const { storeId } = req.params;
         const userId = req.user.id;
-
-        // 1. 권한 검증
         const isMember = await StoreMember.findOne({ storeId, userId });
         if (!isMember) {
             return res.status(403).json({
@@ -238,8 +190,6 @@ router.get("/store/:storeId/latest", auth, async (req, res) => {
                 message: "해당 매장의 매뉴얼을 조회할 권한이 없습니다.",
             });
         }
-
-        // 2. 매장 정보 조회를 통해 사장님 ID(ownerId) 확보
         const store = await Store.findOne({ _id: storeId, isDeleted: false });
         if (!store) {
             return res.status(404).json({
@@ -247,22 +197,18 @@ router.get("/store/:storeId/latest", auth, async (req, res) => {
                 message: "매장을 찾을 수 없거나 삭제된 매장입니다.",
             });
         }
-
-        // 3. 사장님 ID(ownerId)가 생성한 가장 최신 요약본 조회
         const latestSummary = await Summary.findOne({ userId: store.ownerId })
             .sort({ createdAt: -1 });
-
         if (!latestSummary) {
             return res.status(404).json({
                 success: false,
                 message: "아직 매장에 등록된 매뉴얼 요약본이 없습니다.",
             });
         }
-
         res.status(200).json({
             success: true,
             data: {
-                summaryId: latestSummary._id, 
+                summaryId: latestSummary._id,
                 category: latestSummary.category,
                 summaryContent: latestSummary.summaryContent,
                 recommendedQuestions: latestSummary.recommendedQuestions
@@ -278,28 +224,22 @@ router.get("/store/:storeId/latest", auth, async (req, res) => {
     }
 });
 
-// GET /summary/store/:storeId/all
-// 매장의 모든 요약 목록 조회 (알바생용)
 router.get("/store/:storeId/all", auth, async (req, res) => {
     try {
         const { storeId } = req.params;
         const userId = req.user.id;
-
         const isMember = await StoreMember.findOne({ storeId, userId });
         if (!isMember) {
             return res.status(403).json({ success: false, message: "해당 매장의 매뉴얼을 조회할 권한이 없습니다." });
         }
-
         const store = await Store.findOne({ _id: storeId, isDeleted: false });
         if (!store) {
             return res.status(404).json({ success: false, message: "매장을 찾을 수 없거나 삭제된 매장입니다." });
         }
-
         const summaries = await Summary.find({ userId: store.ownerId }).sort({ createdAt: -1 });
         if (!summaries || summaries.length === 0) {
             return res.status(404).json({ success: false, message: "아직 매장에 등록된 매뉴얼 요약본이 없습니다." });
         }
-
         res.status(200).json({
             success: true,
             data: summaries.map((s) => ({

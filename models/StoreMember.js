@@ -30,7 +30,4 @@ const storeMemberSchema = new mongoose.Schema(
 
 storeMemberSchema.index({ storeId: 1, userId: 1 }, { unique: true });
 
-module.exports = mongoose.model(
-  "StoreMember",
-  storeMemberSchema
-);
+module.exports = mongoose.models.StoreMember || mongoose.model("StoreMember", storeMemberSchema);

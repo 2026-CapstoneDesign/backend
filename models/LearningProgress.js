@@ -50,4 +50,4 @@ LearningProgressSchema.index(
     { unique: true }
 );
 
-module.exports = mongoose.model("LearningProgress", LearningProgressSchema);
+module.exports = mongoose.models.LearningProgress || mongoose.model("LearningProgress", LearningProgressSchema);

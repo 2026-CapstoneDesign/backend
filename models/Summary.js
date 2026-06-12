@@ -3,12 +3,12 @@ const mongoose = require('mongoose');
 const SummarySchema = new mongoose.Schema({
     userId: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: 'User', // User 모델과 연결
+        ref: 'User', // User 모델�??�결
         required: true 
     },
     category: { 
         type: String, 
-        default: '일반' 
+        default: '?�반' 
     },
     originalText: { 
         type: String, 
