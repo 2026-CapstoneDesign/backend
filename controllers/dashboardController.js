@@ -2,6 +2,9 @@ const User = require("../models/User");
 const QuizResult = require('../models/QuizResult');
 const Alert = require('../models/Alert');
 const LearningProgress = require("../models/LearningProgress");
+const Store = require("../models/store");
+const StoreMember = require("../models/StoreMember");
+const Summary = require("../models/Summary");
 
 // 직원 학습 현황 API
 exports.getEmployeeStatus = async (req, res) => {
@@ -118,53 +121,85 @@ exports.getAlertStats = async (req, res) => {
 
 // 학습 진행도 API
 exports.getMyLearningStats = async (req, res) => {
-  try {
+    try {
 
-    const userId = req.user.id;
+        const userId = req.user.id;
 
-    const progresses =
-      await LearningProgress.find({
-        userId
-      });
+        // 현재 사용자의 매장 찾기
+        const member = await StoreMember.findOne({
+            userId
+        });
 
-    const totalCount = progresses.length;
+        if (!member) {
+            return res.status(404).json({
+                message: "소속 매장을 찾을 수 없습니다."
+            });
+        }
 
-    const completedCount =
-      progresses.filter(
-        item => item.isCompleted
-      ).length;
+        // 매장 조회
+        const store = await Store.findById(
+            member.storeId
+        );
 
-    const inProgressCount =
-      progresses.filter(
-        item => !item.isCompleted
-      ).length;
+        if (!store) {
+            return res.status(404).json({
+                message: "매장을 찾을 수 없습니다."
+            });
+        }
 
-    const completionRate =
-      totalCount > 0
-        ? (completedCount / totalCount) * 100
-        : 0;
+        // 매장의 전체 교육 수
+        const totalSummaryCount =
+            await Summary.countDocuments({
+                userId: store.ownerId
+            });
 
-    const weeklyStudyTime =
-      progresses.reduce(
-        (sum, item) =>
-          sum + (item.learningTimeMinutes || 0),
-        0
-      );
+        // 완료한 교육 수
+        const completedCount =
+            await LearningProgress.countDocuments({
+                userId,
+                targetType: "summary",
+                isCompleted: true
+            });
 
-    res.json({
-      completedCount,
-      totalCount,
-      averageProgress:
-        Number(completionRate.toFixed(1)),
-      inProgressCount,
-      weeklyStudyTime
-    });
+        // 진행 중인 교육 수
+        const inProgressCount =
+            await LearningProgress.countDocuments({
+                userId,
+                targetType: "summary",
+                isCompleted: false
+            });
 
-  } catch (err) {
-    console.error(err);
+        const completionRate =
+            totalSummaryCount > 0
+                ? (completedCount / totalSummaryCount) * 100
+                : 0;
 
-    res.status(500).json({
-      message: "학습 통계 조회 실패"
-    });
-  }
+        const progresses =
+            await LearningProgress.find({
+                userId
+            });
+
+        const weeklyStudyTime =
+            progresses.reduce(
+                (sum, item) =>
+                    sum + (item.learningTimeMinutes || 0),
+                0
+            );
+
+        res.json({
+            completedCount,
+            totalCount: totalSummaryCount,
+            completionRate:
+                Number(completionRate.toFixed(1)),
+            inProgressCount,
+            weeklyStudyTime
+        });
+
+    } catch (err) {
+        console.error(err);
+
+        res.status(500).json({
+            message: "학습 통계 조회 실패"
+        });
+    }
 };
