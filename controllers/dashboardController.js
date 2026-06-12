@@ -122,38 +122,42 @@ exports.getMyLearningStats = async (req, res) => {
 
     const userId = req.user.id;
 
-    const completedCount =
-      await LearningProgress.countDocuments({
-        userId,
-        isCompleted: true
-      });
-
-    const inProgressCount =
-      await LearningProgress.countDocuments({
-        userId,
-        isCompleted: false
-      });
-
     const progresses =
       await LearningProgress.find({
         userId
       });
 
-    const averageProgress =
-      progresses.length > 0
-        ? progresses.reduce(
-            (sum, item) =>
-              sum + item.progressRate,
-            0
-          ) / progresses.length
+    const totalCount = progresses.length;
+
+    const completedCount =
+      progresses.filter(
+        item => item.isCompleted
+      ).length;
+
+    const inProgressCount =
+      progresses.filter(
+        item => !item.isCompleted
+      ).length;
+
+    const completionRate =
+      totalCount > 0
+        ? (completedCount / totalCount) * 100
         : 0;
+
+    const weeklyStudyTime =
+      progresses.reduce(
+        (sum, item) =>
+          sum + (item.learningTimeMinutes || 0),
+        0
+      );
 
     res.json({
       completedCount,
+      totalCount,
       averageProgress:
-        Number(averageProgress.toFixed(1)),
+        Number(completionRate.toFixed(1)),
       inProgressCount,
-      weeklyStudyTime: 5 // 현재 모델로 계산 불가능하여 더미값 넣음
+      weeklyStudyTime
     });
 
   } catch (err) {
