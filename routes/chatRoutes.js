@@ -72,7 +72,6 @@ router.get("/recommendations/:summaryId", auth, async (req, res) => {
 
 // ==========================================================
 // ② 실시간 대화 질문하기 (POST /chat/ask/:summaryId)
-// ==========================================================
 router.post("/ask/:summaryId", auth, async (req, res) => {
     try {
         const { summaryId } = req.params;
@@ -85,18 +84,18 @@ router.post("/ask/:summaryId", auth, async (req, res) => {
 
         const AI_SERVER_URL = process.env.AI_SERVER_URL || "http://localhost:8000";
 
-        // AI 서버의 단답형 요약 답변 API 호출
         const aiResponse = await axios.post(`${AI_SERVER_URL}/ask`, {
             question: question,
-            manual_text: manual.originalText
+            manual_text: manual.summaryContent || manual.originalText || ''
         });
 
-        // 🌟 원문이 통째로 튀어나오지 않고 1~2줄로 요약된 정답 글자만 깔끔하게 꺼내옵니다.
         const cleanAnswer = aiResponse.data.answer || aiResponse.data;
+        const actions = aiResponse.data.actions || [];
 
         return res.status(200).json({
             success: true,
-            answer: String(cleanAnswer).trim()
+            answer: String(cleanAnswer).trim(),
+            actions: actions
         });
     } catch (error) {
         console.error("챗봇 답변 오류:", error.message);
