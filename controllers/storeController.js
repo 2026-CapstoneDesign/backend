@@ -1,6 +1,7 @@
 const Store = require("../models/store");
 const StoreMember = require("../models/storeMember");
-const crypto = require("crypto"); 
+const User = require("../models/User");
+const crypto = require("crypto");
 
 // =============================
 // 매장 생성
@@ -198,6 +199,8 @@ exports.joinStore = async (req, res) => {
       role: "EMPLOYEE",
       progress: 0,
     });
+
+    await User.findByIdAndUpdate(userId, { ownerId: store.ownerId, role: "employee" });
 
     res.status(201).json({
       message: `'${store.name}' 매장에 성공적으로 소속되었습니다.`,
