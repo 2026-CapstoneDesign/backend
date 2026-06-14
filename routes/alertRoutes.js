@@ -1,16 +1,35 @@
 const express = require("express");
 const router = express.Router();
 const Alert = require("../models/Alert");
-const auth = require("../middleware/auth")
+const auth = require("../middleware/auth");
+const Store = require("../models/Store");
+const StoreMember = require("../models/StoreMember");
 
 
-// 알림 생성 (테스트용)
+// 알림 생성 (사장님용)
 router.post("/", auth, async (req, res) => {
   const alert = await Alert.create({
     ...req.body,
     userId: req.user.id
   });
   res.json(alert);
+});
+
+// 공지 브로드캐스트 - 사장님 + 모든 직원에게 알림
+router.post("/broadcast", auth, async (req, res) => {
+  try {
+    const { title, message } = req.body;
+    const store = await Store.findOne({ ownerId: req.user.id, isDeleted: false });
+    const members = store ? await StoreMember.find({ storeId: store._id, role: "EMPLOYEE" }) : [];
+    const employeeIds = members.map((m) => m.userId);
+
+    const recipients = [req.user.id, ...employeeIds];
+    await Alert.insertMany(recipients.map((userId) => ({ userId, title, message, type: "NOTICE", isRead: false })));
+
+    res.json({ success: true, sentTo: recipients.length });
+  } catch (err) {
+    res.status(500).json({ message: "알림 전송 실패", error: err.message });
+  }
 });
 
 // 알림 목록 조회
@@ -125,12 +144,11 @@ router.get("/unread-count", auth, async (req, res) => {
 });
 
 // ---------- 퀴즈 제출 시 자동 알림 ----------
-// 예: 퀴즈 제출 후
 async function handleQuizResult(userId, quizId, score, wrongAnswers) {
 
   const wrongCount = wrongAnswers.length;
 
-  // 1️) 많이 틀림 → 복습 알림
+  // 많이 틀림 → 복습 알림
   if (wrongCount >= 3) {
     await Alert.create({
       userId,
@@ -141,7 +159,7 @@ async function handleQuizResult(userId, quizId, score, wrongAnswers) {
     });
   }
 
-  // 2️) 점수 낮음 → 취약 영역 알림
+  // 점수 낮음 → 취약 영역 알림
   if (score < 50) {
     await Alert.create({
       userId,
@@ -152,11 +170,11 @@ async function handleQuizResult(userId, quizId, score, wrongAnswers) {
     });
   }
 
-  // 3️) 특정 개념 반복 틀림 (핵심 기능)
+  // 특정 개념 반복 틀림
   const topicCount = {};
 
   wrongAnswers.forEach(q => {
-    const topic = q.topic; // 문제에 topic 넣어놔야 함
+    const topic = q.topic;
     topicCount[topic] = (topicCount[topic] || 0) + 1;
   });
 
@@ -201,7 +219,6 @@ async function handleQuizResult(userId, quizId, score, wrongAnswers) {
 }
 
 // ---------- 시간 기반 알림 ----------
-// 예: 야간 근무 실수 방지
 function getCurrentTimeZone() {
   const hour = new Date().getHours();
 
@@ -212,7 +229,6 @@ function getCurrentTimeZone() {
 }
 
 // ---------- 시즌 기반 알림 ----------
-// 예: 여름 = 냉동 식품, 겨울 = 온장고
 function getSeason() {
   const month = new Date().getMonth() + 1;
 

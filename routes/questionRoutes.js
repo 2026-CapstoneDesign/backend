@@ -4,6 +4,8 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 const Question = require("../models/Question");
 const Answer = require("../models/Answer");
+const Alert = require("../models/Alert");
+const User = require("../models/User");
 
 /**
  * 질문 작성
@@ -26,6 +28,26 @@ router.post("/", auth, async (req, res) => {
             content,
             category: category || "일반",
         });
+
+        // 사장님에게 알림 발송 (ownerId 있는 경우)
+        try {
+            const asker = await User.findById(req.user.id);
+            console.log("질문 작성자:", asker?.name, "ownerId:", asker?.ownerId);
+            if (asker?.ownerId) {
+                await Alert.create({
+                    userId: asker.ownerId,
+                    type: "QUESTION",
+                    title: "새 질문이 등록되었습니다",
+                    message: `${asker.name}님: ${title}`,
+                    relatedId: question._id,
+                });
+                console.log("사장님 알림 생성 완료");
+            } else {
+                console.log("ownerId 없음 - 알림 미발송");
+            }
+        } catch (alertErr) {
+            console.error("질문 알림 생성 실패:", alertErr.message);
+        }
 
         res.status(201).json({
             success: true,
@@ -52,10 +74,22 @@ router.get("/", auth, async (req, res) => {
             .populate("userId", "name email role")
             .sort({ createdAt: -1 });
 
+        const questionIds = questions.map((q) => q._id);
+        const answerCounts = await Answer.aggregate([
+            { $match: { questionId: { $in: questionIds } } },
+            { $group: { _id: "$questionId", count: { $sum: 1 } } },
+        ]);
+        const answerCountMap = Object.fromEntries(answerCounts.map((a) => [a._id.toString(), a.count]));
+
+        const data = questions.map((q) => ({
+            ...q.toObject(),
+            answerCount: answerCountMap[q._id.toString()] ?? 0,
+        }));
+
         res.status(200).json({
             success: true,
-            count: questions.length,
-            data: questions,
+            count: data.length,
+            data,
         });
     } catch (err) {
         console.error("질문 목록 조회 에러:", err.message);
